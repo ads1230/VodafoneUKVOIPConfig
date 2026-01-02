@@ -1,159 +1,104 @@
 # Vodafone UK VOIP Residential FTTP Configuration notes
-A reference for using your own VOIP hardware (Grandstream WP810) with Vodafone UK Residential FTTP + OPNSense
-
-As of this writing, Vodafone ships a router with a built-in component that allows you to connect your existing PTSN phone to the Vodafone VOIP network. There is no sound technical reason preventing you from using your own VOIP hardware via your own router. However, for business reasons, Vodafone prefers that residential customers be unable to use their own equipment. [Here it is in their own words](https://forum.vodafone.co.uk/t5/Landline/Landline-phone-with-own-router-on-FTTP/m-p/2744786/highlight/true#M3568):
-  ```
-    "As this is a consumer Home Broadband service and not a business service where this is explicitly provided, Vodafone are unable to offer this as a service to the customer"
-  ```
-> [!NOTE]  
-> It seems that Vodafone may have stopped [giving out the voip information](https://www.reddit.com/r/HomeNetworking/comments/1e1pbhv/has_anyone_succesfully_got_uk_vodafone_voip_to/). They have also closed and removed their forums.
-
-## Sources
-Most of the information contained here is from [this thread](https://forum.vodafone.co.uk/t5/Landline/Landline-phone-with-own-router-on-FTTP/m-p/2709457) on the vodafone forums.
-
-This sprawling thread is essentially the authority on the subject. I'm going to condense it down for my own reference and deploy a WP810. In the hopes that this may help someone else, here are my notes. All credit goes to the members there sharing their hard work. 
-
-## Configuring PFSense & OPNSense for VOIP via NAT
-
-This section is only relevant if you are using OPNSense or PFSense as your router. If you are using different firmware you will need to find another way to achieve the following, though the basic principle should be the same. This section should also apply to other VOIP providers.
-
-SIP uses RTP to transport audio data. By default, NAT rewrites the source port of traffic to enable multiple outbound connections to use the same source port, as no two devices can know which ports are in use. This causes a problem for SIP as described [here](https://www.sonicwall.com/support/knowledge-base/troubleshooting-a-scenario-where-source-remap-is-causing-the-voip-issues/170504967157192/)
-
-There are three ways to work around this, only one of which is safe.
-
-Method one is to put your phone in a DMZ which will fully expose it to the internet. This is bad for obvious reasons, but there are lots of posts telling you to do this to make VOIP work. **Don't do it, under any circumstance.**
-
-Method two is to port forward the relevant ports. This is ugly and it may appear to work. It allows anyone on the internet to send packets to your phone and you may have to forward a range of ports which now won't work for other devices causing connectivity issues. Many instructions online recommend this approach. **Don't do it, it will break more than your VOIP. You're essentially unleashing a chaos monkey.**
-
-Method three is to use Outbound NAT rules to disable source port rewriting for packets originating from your VOIP phone(s). This does not expose your phone and safely allows RTP to traverse the NAT while reducing the chance of a port conflict. 
-
-+ Step 1: Create a host alias that references your phone's IP or hostname.
-
-+ Step 2: Create a port alias that references the SIP port (5065 for Vodafone, may vary for other providers) and the RTP port range. The instructions below specify the starting port as 10000 with a range of 200. However, usually RTP uses a range of 10000-32767.
-
-+ Step 3: Apply a firewall rule(s) to the relevant LAN interface that allows OUTBOUND connections from the host alias we set up in step 1. Depending on your configuration you will need to allow TCP/UDP connections via the port ranges specified in the alias we created in step 2.
-
-+ Step 4: Go to Firewall -> NAT -> Outbound and select "Hybrid outbound NAT rule generation".
-
-+ Step 5: Go to Firewall -> NAT -> Outbound and add a manual rule, Interface: WAN Source:(The alias we created in step 1) Source Port: (The port alias we created in step 2) Destination:* Destination Port: tcp/udp/* NAT address: Interface Address NAT Port * Static Port: YES
-
-“Static port” is the option that disables source port rewriting for connections that match the rule.
-
- <sub>This information is based on instructions from [here](https://www.3cx.com/docs/pfsense-firewall/) and [here](https://www.reddit.com/r/opnsense/comments/16n2fr3/voipdectbasestation_behind_opnsense_firewall/?rdt=52318). Note that the 3CX document counter-intuitively refers to "port mapping" in the context of outbound NAT traversal, rather than the more common inbound port to host mapping. </sub>
-
-#### RTP Port Range Considerations
-
-RTP by default uses a random UDP port from 10000-32767. The phone is unaware of which source ports are in use by other devices on the local network. If something else is (or has) been using UDP/10000 for example, the call will fail until the relevant state table entry expires. This is the problem that remapping aims to fix after all, and we have disabled it.
-
-Ripshod's configuration restricts the RTP port range to 20 from a base port of 10000. In cases where you are unable to dynamically limit the scope of source port remapping (i.e., you're not using OPNsense/PFsense) this limits the ports that you 'lose' to the workaround and decreases the chance of a conflict. However, this is suboptimal and unnecessary when using Outbound NAT rules. A bigger range decreases the chance of a conflict and does not impact other devices. Relying on a single port or small pool increases the chances of port conflicts and intermittent connectivity issues.
-
-## WP810 Configuration
-
-Ripshod very kindly posted screenshots of his configuration [here](https://forum.vodafone.co.uk/t5/Landline/Landline-phone-with-own-router-on-FTTP/m-p/2734408/highlight/true#M2802)
-but the original download is now missing. They are instead included in the section below.
-
-I followed these settings almost exactly as is for my WP810 with one exception. I set "Local RTP Port Range" to 200, a higher number is better for the reasons noted above. I did not put a space between "Vox3.0". The one or two missing options were inconsequential.
-
-If you are using the OPNSense configuration posted above the correct NAT traversal option is as shown in the screen shots: "No." I did provide a stun server address but I was unable to get this to work and instead opted to manually enter my IP. Selecting the STUN option for NAT traversal did not work.
-
-Finally I applied the localisation settings as noted below.
-
-## Configuration Screenshots
-
-Below are the configuration screenshots to help with setup. Click on any image to view it at full size.
-
-<details>
-<summary>Click to expand all configuration screenshots</summary>
-
-![Configuration Screenshot 1](screenshots/SS1.jpg)
-
-![Configuration Screenshot 2](screenshots/SS2.jpg)
-
-![Configuration Screenshot 3](screenshots/SS3.jpg)
-
-![Configuration Screenshot 4](screenshots/SS4.jpg)
-
-![Configuration Screenshot 5](screenshots/SS5.jpg)
-
-![Configuration Screenshot 6](screenshots/SS6.jpg)
-
-![Configuration Screenshot 7](screenshots/SS7.jpg)
-
-![Configuration Screenshot 8](screenshots/SS8.jpg)
-
-![Configuration Screenshot 9](screenshots/SS9.jpg)
-
-![Configuration Screenshot 10](screenshots/SS10.jpg)
-
-![Configuration Screenshot 11](screenshots/SS11.jpg)
-
-![Configuration Screenshot 12](screenshots/SS12.jpg)
-
-![Configuration Screenshot 13](screenshots/SS13.jpg)
-</details>
+For using your own VOIP hardware (Grandstream WP810) with Vodafone UK Residential FTTP
+The locations for the Grandstream settings vary depending on model. The ones on this page are specific to the HT8XX models.
 
 ## Known working phones
-As of 17/01/2024 [from this post](https://forum.vodafone.co.uk/t5/Landline/Landline-phone-with-own-router-on-FTTP/m-p/2744752/highlight/true#M3565)
-
-+ GXP1620 - Wired Phone (Tested by g7omn)
-+ GXP1625 - Wired Phone (Tested by mdbloomfield)
-+ HT801 - ATA (Tested by many)
-+ HT802 - ATA (Tested by many)
-+ HT812 - ATA (Tested by many)
-+ WP810 - WiFi Phone (Tested by cf996 & Ripshod)
-+ WP822 - WiFi Phone (Tested by Ripshod)
++ GXP1620 - Wired Phone
++ GXP1625 - Wired Phone
++ HT801 - ATA
++ HT802 - ATA
++ HT812 - ATA
++ WP810 - WiFi Phone
++ WP822 - WiFi Phone
 + Cisco ATA 191
 + Cisco ATA 192
 
-## Why these phones?
-
-As per [this](https://forum.vodafone.co.uk/t5/Landline/Landline-phone-with-own-router-on-FTTP/m-p/2744786/highlight/true#M3568) and [this](https://forum.vodafone.co.uk/t5/Landline/Landline-phone-with-own-router-on-FTTP/m-p/2743365/highlight/true#M3509) post
-
-Vodafone consider using your own VOIP equipment a business feature and have hidden behind an excuse of security to avoid providing anything more than username, password, and server. Further they have configured their system to require specific settings that are not exposed by all makes and models. For example, you must set the SIP User-Agent as Vox 3.0.
-
 ## DNS
-
-Vodafone answers DNS queries with SRV records. However your device MUST USE VODAFONE DNS SERVERS TO RESOLVE THE RELEVANT DOMAINS.
-
+Your device MUST USE VODAFONE DNS SERVERS TO RESOLVE THE RELEVANT DOMAINS.
 + Primary DNS: 90.255.255.91
 + Secondary DNS: 90.255.255.255
 
-> [!IMPORTANT]  
-> You will note in the configuration screenshots that DNS is set to "srv" and not "Use configured IP". This, dear reader, is a little bit silly because the two options should not be mutually exclusive. This means that your DHCP server must be set to provide the device with the Vodafone DNS servers above. They cannot be set on the phone. If you are using Opnsense you can do this on a per device basis.
+## Obtain your SIP details from Vodafone
++ Primary SIP Server: resvoip.vodafone.co.uk
++ Outbound Proxy: xxx.xx.bbvoice.vodafone.co.uk
++ SIP UserID and Authenticate ID: voi00XXXXXX
++ Authenticate Password: As provided by vodafone
 
-## Username & Password
+## Configure router for VOIP via NAT
++ [Optional] Create a VLAN with vodafone's DNS servers - their DNS servers are required to login
++ Fix your Grandstream devices IP address on your router (and switch to new VLAN)
++ Open ports 5065 (SIP), 10000-10010 (RTP)
++ If you do not have a static IP open port 19302 for STUN
 
-You will need to contact Vodafone via their live chat to request your VOIP username, password & server. You may need to make it clear that you are requesting your VOIP credentials and not your broadband credentials. You should guard these credentials. You are unable to change them and, if obtained, can be used to place phone calls that will be billed to your account. 
-> [!NOTE]  
-> It seems that Vodafone may have stopped [giving out the voip information](https://www.reddit.com/r/HomeNetworking/comments/1e1pbhv/has_anyone_succesfully_got_uk_vodafone_voip_to/). They have also closed and removed their forums.
+For example for UniFi routers
+Create a new VLAN: Settings > Networks - New Virtual network > Name: VOIP, Zone: Internal, IPv4 Address: 192.168.3.1, VLAN ID2, Uncheck Auto DNS server, add 90.255.255.91 and 90.255.255.90
+Fix your Grandstream's IP and switch to the new VLAN: Client devices > find grandstream router > settings > Check Virtual Network Override > VOIP. Add a fixed IP address e.g., 192.168.3 .
+Add 3 new polices (Setting > Policy Engine > Policy Table > Create New Policy) 
+- VOIP SIP: TYPE: NAT Masquerade, TCP/UDP, SOURCE: IP, Specific, GRANDSTREAM IP (192.168...), Port Specific 5065, Destination: ANY, PORT Specific 5065
+- VOIP RTP: TYPE: NAT Masquerade, TCP/UDP, SOURCE: IP, Specific, GRANDSTREAM IP (192.168...), Port Specific 10000-10010, Destination: ANY, PORT Specific 10000-10010
+- VOIP STUN: TYPE: NAT Masquerade, TCP/UDP, SOURCE: IP, Specific, GRANDSTREAM IP (192.168...), Port Specific 19302, Destination: ANY, PORT Specific 19302
+Note: you could also just have one VOIP policy and group the ports (5065,10000-10010,19302)
 
-## The SIP Proxy Server
+## Grandsream Configuration
+FXS PORTS
++ PORT 1: SIP User ID & Authenticate ID = username, Password = password, Name: VODAFONE
 
-When you request your details from Vodafone they should give you the address of your SIP (proxy) server. The first agent I spoke to did not do this, and I spent some time trying other servers published online. This did not work. So it seems that you MUST use the proxy server address provided to you by Vodafone.
+Advanced settings
++ (if no fixed WAN IP, exclude if fixed IP) STUN server is: stun.l.google.com:19302
+
+Profile 1
++ Primary SIP server: resvoip.vodafone.co.uk
++ Prefer Primary SIP Server: yes
++ Outbound proxy: xxx.xx.bbvoice.vodafone.co.uk (as provided by vodafone)
++ Sip user ID: voixxxxxxxxxx (as provided by vodafone)
++ Authenticate ID: voixxxxxxxxxx (as provided by vodafone)
++ Authenticate password: ******** (as provided by vodafone)
++ DNS mode: SRV
++ NAT Traversal: STUN (if no static IP), No (if static IP)
++ Register expiration: 60 minutes
++ Register before expiration: 15 seconds
++ Enable SIP Options/Notify Keep-alive: Options
++ Local SIP port: 5065
++ Local RTP port: 10000
++ Remove OBP from route header: Yes
++ SIP User-Agent: Vox 3.0
++ Enable 100rel: Yes
++ Add Auth header on initial REGISTER: Yes
++ Preferred vocoder: PCMA > G.729 > PCMU > iLBC > OPUS > G.726-32 > G723 > G.722
++ SLIC Setting: UK
++ Caller ID Scheme: SIN 227 – BT
++ OnHook DC Feed Current: 20mA
+Leave all other fields as per their default setting.
+
+To block spam IP calls (SPIT) from numbers like 10001, 1001, 100, 11, disable direct IP calls:
++ Check SIP User ID for incoming INVITE: Yes (no direct IP calling if Yes)
++ Allow Incoming SIP Messages: Yes (no direct IP calling if Yes)
+
+Remember to click "Update" and "Apply" buttons located at the bottom of every page to save and activate the changes. you may need to reboot via the FXS Ports page.
+
+Once completed on the status page ensure FXS 1 is "Registered"
 
 ## Localisation
-Grandstream devices often come configured for the American market and may require localisation for use in the UK. The details are as follows, copied from the great post [here](https://forum.vodafone.co.uk/t5/Landline/Landline-phone-with-own-router-on-FTTP/m-p/2740553/highlight/true#M3287)
+Basic settings
++ under IPv4 Address add 1st Preferred DNS server and 2nd Preferred DNS server as 90.255.255.91 and 90.255.255.90. (dont use the statically configured part)
 
-As an example, on the Grandstream HT812 configure with the following:
-
-Navigate to the BASIC SETTINGS page:
-+ Time Zone: GMT (London, Great Britain)
-+ Self-Defined Time Zone: GMT0BST,M3.5.0/1,M10.5.0
-Navigate to the ADVANCED SETTINGS page:
+Advanced settings
 + System Ring Cadence: c=400/200-400/2000;
-+ Dial Tone: f1=350@-19,f2=440@-22,c=0/0;
++ Dial Tone: f1=350@-19,f2=440@-22,c=0/0;  
 + Ringback Tone: f1=400@-20,f2=450@-20,c=400/200-400/2000;
 + Busy Tone: f1=400@-20,c=375/375;
-+ Reorder Tone: f1=400@-20,c=400/350-225/525-0/0;
-+ Confirmation Tone: f1=1400@-10,c=0/0;
++ Reorder Tone: f1=400@-20,c=400/350-225/525-0/0;  
++ Confirmation Tone: f1=1400@-10,c=0/0;  
 + Call Waiting Tone: f1=400@-20,c=100/2000;
-+ Prompt Tone: f1=350@-19,f2=440@-22,c=0/0;
++ Prompt Tone: f1=350@-19,f2=440@-22,c=0/0; 
 + Conference Party Hangup Tone: f1=400@-20,c=0/0;
-+ Special Proceed Indication Tone: f1=350@-19, f2=440@-22, c=750/750-0/0;
++ Special Proceed Indication Tone: f1=350@-19, f2=440@-22, c=750/750-0/0;	  
++ Special Condition Tone: f1=350@-13, f2=450@-13, c=750/750;
 + NTP Server: uk.pool.ntp.org
-+ Navigate to the PROFILE 1/2 (FXS PORT on HT813) page(s):
+
+Profile 1
 + MWI Tone: Special Proceed Indication Tone
-+ Dial Plan: { 10[015] | 11[129] | 999 | 11[68]xxx | 1[45]7[1-2] | 08001111 | 0845464x | 0[1235789]xxxxxxxxx | 1410[1235789]xxxxxxxxx | 14700[1235789]xxxxxxxxx | 00xxx. | x+ | \+x+ | *x+ | *xx*x+ }
++ Dial Plan: { 10[015] | 11[129] | 999 | 11[68]xxx | 1[45]7[1-2] | 08001111 | 0845464x | 0[1235789]xxxxxxxxx | 1410[1235789]xxxxxxxxx | 14700[1235789]xxxxxxxxx | 00xxx. | x+ | +x+ | *x+ | xxx+ }
 + SLIC Setting: UK
 + Caller ID Scheme: SIN 227 - BT
 + Hook Flash Timing: Minimum: 60 Maximum: 200
@@ -179,12 +124,9 @@ Navigate to the ADVANCED SETTINGS page:
 + Call Waiting Tone 9: f1=400@-20,c=100/2000;
 + Call Waiting Tone 10: f1=400@-20,c=100/2000;
 
-Remember to click on the "Update" and "Apply" buttons located at the bottom of every page to save and activate the changes.
-
-#### Purchased a Grandstream HT813 telephone adapter?
-The HT813 is an analog telephone adapter that features 1 analog telephone FXS port and 1 PSTN line FXO port in order to offer backup lifeline support using a PSTN line. Additional UK regional settings are required for this model and I have included them below.
-Navigate to the FXO PORT page:
-
+#### Grandstream HT813 telephone adapter
+Additional UK regional settings are required for this model.
+FXO PORT page:
 + Caller ID Scheme: SIN 227 - BT
 + FSK Caller ID Seizure Bits: 96
 + FSK Caller ID Mark Bits: 55
@@ -192,23 +134,5 @@ Navigate to the FXO PORT page:
 + Country-based: UK
 + Impedance-based: COMPLEX3 -- 370 ohms + (620 ohms || 310nF)
 
-## Connection settings
-General connection settings from [here](https://forum.vodafone.co.uk/t5/Landline/Landline-phone-with-own-router-on-FTTP/m-p/2741048/highlight/true#M3334)
- 
-+ Primary SIP Server: resvoip.vodafone.co.uk
-+ Outbound Proxy: As provided by vodafone
-+ SIP UserID and Authenticate ID: As provided by vodafone
-+ Authenticate Password: As provided by vodafone
-+ DNS mode has to be on SRV
-+ Use NAT IP I set to be my static IP that Vodafone gave me
-+ SIP User-Agent set as Vox 3.0
-
-SIP Port should be 5065 and the RTP Port should be 10000
-
-Sometimes, once you have the correct settings you have to reboot the ATA to get them working. As noted [here](https://forum.vodafone.co.uk/t5/Landline/Landline-phone-with-own-router-on-FTTP/m-p/2734431/highlight/true#M2808).
-
-## Asterisk
-
-User clayface very helpfully kick started the effort to make all this work by posting a working config for Asterisk [here](https://github.com/clayface/VF-UK-Asterisk-config)
-````
-
+## Sources
+Vodafone forums via the [internet archive](https://web.archive.org/web/20240801000000*/https://forum.vodafone.co.uk/t5/Landline/Landline-phone-with-own-router-on-FTTP/td-p/2709457).
