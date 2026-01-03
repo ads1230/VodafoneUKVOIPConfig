@@ -28,7 +28,6 @@ Your device MUST USE VODAFONE DNS SERVERS TO RESOLVE THE RELEVANT DOMAINS.
 + [Optional] Create a VLAN with vodafone's DNS servers - their DNS servers are required to login
 + Fix your Grandstream devices IP address on your router (and switch to new VLAN)
 + Open ports 5065 (SIP), 10000-10010 (RTP)
-+ If you do not have a static IP open port 19302 for STUN
 
 For example for UniFi routers
 + Create a new VLAN: Settings > Networks - New Virtual network > Name: VOIP, Zone: Internal, IPv4 Address: 192.168.3.1, VLAN ID2, Uncheck Auto DNS server, add 90.255.255.91 and 90.255.255.90
@@ -36,7 +35,6 @@ For example for UniFi routers
 + Add 3 new polices (Setting > Policy Engine > Policy Table > Create New Policy) 
 - VOIP SIP: TYPE: NAT Masquerade, TCP/UDP, SOURCE: IP, Specific, GRANDSTREAM IP (192.168...), Port Specific 5065, Destination: ANY, PORT Specific 5065
 - VOIP RTP: TYPE: NAT Masquerade, TCP/UDP, SOURCE: IP, Specific, GRANDSTREAM IP (192.168...), Port Specific 10000-10010, Destination: ANY, PORT Specific 10000-10010
-- VOIP STUN: TYPE: NAT Masquerade, TCP/UDP, SOURCE: IP, Specific, GRANDSTREAM IP (192.168...), Port Specific 19302, Destination: ANY, PORT Specific 19302
 Note: you could also just have one VOIP policy and group the ports (5065,10000-10010,19302)
 
 ## Grandsream Configuration
