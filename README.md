@@ -12,6 +12,7 @@ The locations for the Grandstream settings vary depending on model. The ones on 
 + WP822 - WiFi Phone
 + Cisco ATA 191
 + Cisco ATA 192
++ Yealink W70B base station: Screenshots and instruction text file: https://drive.google.com/drive/folders/1KWq1dk6jJu_5v9hS35hCy7nRO9d_Lawd?usp=sharing
 
 ## DNS
 Your device MUST USE VODAFONE DNS SERVERS TO RESOLVE THE RELEVANT DOMAINS.
