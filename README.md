@@ -39,6 +39,9 @@ For example for UniFi routers
 Note: you could also just have one VOIP policy and group the ports (5065,10000-10010,19302)
 
 ## Grandsream Configuration
+Basic settings
++ under IPv4 Address add 1st Preferred DNS server and 2nd Preferred DNS server as 90.255.255.91 and 90.255.255.90. (dont use the statically configured part)
+
 FXS PORTS
 + PORT 1: SIP User ID & Authenticate ID = username, Password = password, Name: VODAFONE
 
@@ -78,8 +81,11 @@ Remember to click "Update" and "Apply" buttons located at the bottom of every pa
 Once completed on the status page ensure FXS 1 is "Registered"
 
 ## Localisation
+If you have purchased a Grandstream telephone adapter (ATA), it will come configured for the US telecom system as standard. As such, it will play back US style tones, sounds and some UK phone features may not work correctly unless you make some configuration changes via the devices web based GUI.
+
 Basic settings
-+ under IPv4 Address add 1st Preferred DNS server and 2nd Preferred DNS server as 90.255.255.91 and 90.255.255.90. (dont use the statically configured part)
++ Time Zone: GMT (London, Great Britain)
++ Self-Defined Time Zone: GMT0BST,M3.5.0/1,M10.5.0
 
 Advanced settings
 + System Ring Cadence: c=400/200-400/2000;
