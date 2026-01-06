@@ -16,8 +16,10 @@ The locations for the Grandstream settings vary depending on model. The ones on 
 
 ## DNS
 Your device MUST USE VODAFONE DNS SERVERS TO RESOLVE THE RELEVANT DOMAINS.
-+ Primary DNS: 90.255.255.91
-+ Secondary DNS: 90.255.255.255
++ 90.255.255.90
++ 90.255.255.91
++ 90.255.255.254
++ 90.255.255.255
 
 ## Obtain your SIP details from Vodafone
 + Primary SIP Server: resvoip.vodafone.co.uk
