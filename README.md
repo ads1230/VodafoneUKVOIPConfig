@@ -1,17 +1,13 @@
 # Vodafone UK VOIP Residential FTTP Configuration notes
-For using your own VOIP hardware (Grandstream WP810) with Vodafone UK Residential FTTP
+For using your own VOIP hardware with Vodafone UK Residential FTTP
 The locations for the Grandstream settings vary depending on model. The ones on this page are specific to the HT8XX models.
 
 ## Known working phones
 + GXP1620 - Wired Phone
 + GXP1625 - Wired Phone
-+ HT801 - ATA
-+ HT802 - ATA
-+ HT812 - ATA
-+ WP810 - WiFi Phone
-+ WP822 - WiFi Phone
-+ Cisco ATA 191
-+ Cisco ATA 192
++ HT8XX (HT801, HT802, HT812) - ATA
++ WP8XX (WP10, WP822) - WiFi Phone
++ Cisco ATA 191 & 192
 + Yealink W70B base station: Screenshots and instruction text file: https://drive.google.com/drive/folders/1KWq1dk6jJu_5v9hS35hCy7nRO9d_Lawd?usp=sharing
 
 ## DNS
